@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html>
+<body onload="startGame()" style="margin: 0; height: 100vh; display: flex; justify-content: center; align-items: center;">
+
+<canvas id="gameCanvas" style="background-color: #DDDDDD"></canvas>
+
+<script>
+
+// TICK ENGINE VARS
+const tickLength = 20;
+let frameAccumulator = 0;
+let lastTimestamp = 0;
+let gameDuration = 0;
+
+// ==== PLAYER CLASS ====
+class Player {
+	constructor(x, y) {
+        this.x = x;
+        this.y = y;
+        this.width = 35;
+        this.height = 35;
+        this.velX = 0;
+        this.velY = 0;
+        this.speedFactor = 8;
+        this.jumpStrength = 12;
+    }
+	update() {
+		this.x += this.velX;
+		this.y += this.velY;
+
+		if (this.y < gameArea.canvas.height - this.height) {
+			this.velY += 0.5;
+		} else {
+			this.velY = 0;
+		}
+
+		this.x = Math.max(0, Math.min(this.x, gameArea.canvas.width - this.width));
+		this.y = Math.max(0, Math.min(this.y, gameArea.canvas.height - this.height));
+	}
+	draw() {
+		const ctx = gameArea.context;
+		ctx.fillStyle = "red";
+		ctx.fillRect(this.x, this.y, this.width, this.height);
+	}
+}
+
+/*
+class Obstacle {
+	constructor(x, y) {
+		this.x = x;
+		this.y = y;
+		this.width = width;
+        this.height = height;
+    }
+	draw() {
+		 ctx.fillStyle = "gray";
+		 ctx.fillRect(this.x, this.y, this.width, this.height);
+	} 
+}
+*/
+
+// ==== START GAME ====
+function startGame() {
+	playerObj = new Player(100, 100);
+	gameArea.setup();
+}
+
+// ==== GAME AREA ====
+const gameArea = {
+    canvas: document.getElementById("gameCanvas"),
+    setup: function() {
+        this.canvas.width = window.innerWidth / 1.1;
+        this.canvas.height = window.innerHeight / 1.2;
+        this.context = this.canvas.getContext("2d");
+		
+        lastTimestamp = performance.now();
+        requestAnimationFrame(engineLoop); 
+    },
+    clear: function() {
+        if (this.context) {
+            this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
+        }
+    }
+};
+
+// ==== MOVE PLAYER ====
+function movePlayer() {
+    playerObj.velX = 0;
+    const onGround = playerObj.y >= gameArea.canvas.height - playerObj.height;
+    if (keys.Space && onGround) playerObj.velY = -playerObj.jumpStrength; // Jump
+    if (keys.KeyA && !keys.KeyD) playerObj.velX = -playerObj.speedFactor; // Move left
+    if (keys.KeyD && !keys.KeyA) playerObj.velX = playerObj.speedFactor; // Move right
+}
+
+// ==== UPDATE GAME AREA ====
+function update() {
+	playerObj.update();
+	movePlayer();
+	gameDuration++;
+	return true;
+}
+
+// ==== DRAW VISUALS ====
+function renderGame() {
+	gameArea.clear(); // clear gameArea before drawing
+	playerObj.draw();
+}
+
+// ==== GAME ENGINE ====
+function engineLoop(currentTime) {
+    let deltaTime = currentTime - lastTimestamp;
+    lastTimestamp = currentTime;
+
+    frameAccumulator += deltaTime;
+
+    let running = true;
+    while (frameAccumulator >= tickLength) {
+        running = update(); 
+        frameAccumulator -= tickLength;
+    }
+
+    renderGame();
+    requestAnimationFrame(engineLoop);
+	
+}
+
+// ==== KEYBOARD LISTENERS ====
+const keys = { KeyW: false, KeyA: false, KeyD: false, Space: false };
+
+document.addEventListener("keydown", function(e) {
+	if (e.code in keys) {
+		keys[e.code] = true;
+		e.preventDefault();
+	}
+});
+document.addEventListener("keyup", function(e) {
+	if (e.code in keys) {
+		keys[e.code] = false;
+	}
+});
+</script>
+</body>
+</html>
